@@ -15,3 +15,4 @@ proc.o: proc.c proc.h
 
 clean:
 	rm -f *.o mini_htop
+

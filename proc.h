@@ -9,6 +9,7 @@ typedef struct{
   size_t memory_kb;
 }Process;
 
+#include <stddef.h>
 ssize_t get_processes(Process* list, size_t max);
 
 #endif

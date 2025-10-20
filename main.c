@@ -17,23 +17,20 @@ int cmp_memory(const void *a, const void *b) {
 }
 
 int main(void) {
-    int selected = 0;
     Process procs[MAX_PROCESSES];
     ssize_t n = 0;
+    int selected = 0;
 
     initscr();
     noecho();
     curs_set(FALSE);
     keypad(stdscr, TRUE);
-    nodelay(stdscr, FALSE);
+    nodelay(stdscr, FALSE); // wait for key press
+
     while (1) {
-        clear();
-        int ch = getch();
-        if(ch == KEY_UP && selected > 0) selected--;
-        if(ch == KEY_DOWN && selected < n-1 && selected < LINES-2) selected++;
-        if(ch == 'q' || ch == 'Q') break;
         n = get_processes(procs, MAX_PROCESSES);
         if (n < 0) {
+            clear();
             mvprintw(0, 0, "Error reading processes");
             refresh();
             sleep(2);
@@ -42,19 +39,28 @@ int main(void) {
 
         if (n > 1) qsort(procs, n, sizeof(Process), cmp_memory);
 
+        clear();
         mvprintw(0, 0, "%-8s %-*s %12s", "PID", NAME_WIDTH, "NAME", "MEMORY (KB)");
+
         for (ssize_t i = 0; i < n && i < LINES - 1; i++) {
+            if (i == selected) attron(A_REVERSE);
             char name[NAME_WIDTH + 1];
-            if(i == selected) attron(A_REVERSE);
             snprintf(name, sizeof(name), "%.*s", NAME_WIDTH, procs[i].name);
             mvprintw(i + 1, 0, "%-8d %-*s %12zu", procs[i].pid, NAME_WIDTH, name, procs[i].memory_kb);
-            if(i == selected) attroff(A_REVERSE);
+            if (i == selected) attroff(A_REVERSE);
         }
 
         refresh();
-        sleep(1);
+
+        int ch = getch();
+        if (ch == KEY_UP && selected > 0) selected--;
+        if (ch == KEY_DOWN && selected < n - 1 && selected < LINES - 2) selected++;
+        if (ch == 'q' || ch == 'Q') break;
+
+        usleep(100000);
     }
 
     endwin();
     return 0;
 }
+
