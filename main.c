@@ -17,16 +17,21 @@ int cmp_memory(const void *a, const void *b) {
 }
 
 int main(void) {
+    int selected = 0;
     Process procs[MAX_PROCESSES];
-    ssize_t n;
+    ssize_t n = 0;
 
     initscr();
     noecho();
     curs_set(FALSE);
-
+    keypad(stdscr, TRUE);
+    nodelay(stdscr, FALSE);
     while (1) {
         clear();
-
+        int ch = getch();
+        if(ch == KEY_UP && selected > 0) selected--;
+        if(ch == KEY_DOWN && selected < n-1 && selected < LINES-2) selected++;
+        if(ch == 'q' || ch == 'Q') break;
         n = get_processes(procs, MAX_PROCESSES);
         if (n < 0) {
             mvprintw(0, 0, "Error reading processes");
@@ -40,8 +45,10 @@ int main(void) {
         mvprintw(0, 0, "%-8s %-*s %12s", "PID", NAME_WIDTH, "NAME", "MEMORY (KB)");
         for (ssize_t i = 0; i < n && i < LINES - 1; i++) {
             char name[NAME_WIDTH + 1];
+            if(i == selected) attron(A_REVERSE);
             snprintf(name, sizeof(name), "%.*s", NAME_WIDTH, procs[i].name);
             mvprintw(i + 1, 0, "%-8d %-*s %12zu", procs[i].pid, NAME_WIDTH, name, procs[i].memory_kb);
+            if(i == selected) attroff(A_REVERSE);
         }
 
         refresh();
