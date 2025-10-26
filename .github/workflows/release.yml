@@ -10,14 +10,25 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            install: sudo apt-get update && sudo apt-get install -y libncurses-dev
+            artifact-name: mini_htop-linux-x86_64
+            archive-name: mini_htop-linux-x86_64.tar.gz
+          - os: macos-latest
+            install: brew install ncurses
+            artifact-name: mini_htop-macos-universal
+            archive-name: mini_htop-macos-universal.tar.gz
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Install ncurses dependency
-        run: sudo apt-get update && sudo apt-get install -y libncurses-dev
+        run: ${{ matrix.install }}
 
       - name: Build binary
         run: make
@@ -26,13 +37,13 @@ jobs:
         run: |
           mkdir -p dist
           cp mini_htop dist/
-          tar -czf mini_htop-linux-x86_64.tar.gz -C dist mini_htop
+          tar -czf ${{ matrix.archive-name }} -C dist mini_htop
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mini_htop-linux-x86_64
-          path: mini_htop-linux-x86_64.tar.gz
+          name: ${{ matrix.artifact-name }}
+          path: ${{ matrix.archive-name }}
           if-no-files-found: error
 
       - name: Clean workspace
@@ -49,12 +60,16 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: mini_htop-linux-x86_64
+          pattern: mini_htop-*
+          merge-multiple: true
+          path: artifacts
 
       - name: Publish GitHub release asset
         uses: softprops/action-gh-release@v2
         with:
-          files: mini_htop-linux-x86_64.tar.gz
+          files: |
+            artifacts/mini_htop-linux-x86_64.tar.gz
+            artifacts/mini_htop-macos-universal.tar.gz
           draft: false
           prerelease: false
         env:
