@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install ncurses dependency
+        run: sudo apt-get update && sudo apt-get install -y libncurses-dev
+
+      - name: Build binary
+        run: make
+
+      - name: Package artifact
+        run: |
+          mkdir -p dist
+          cp mini_htop dist/
+          tar -czf mini_htop-linux-x86_64.tar.gz -C dist mini_htop
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mini_htop-linux-x86_64
+          path: mini_htop-linux-x86_64.tar.gz
+          if-no-files-found: error
+
+      - name: Clean workspace
+        run: make clean
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mini_htop-linux-x86_64
+
+      - name: Publish GitHub release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: mini_htop-linux-x86_64.tar.gz
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
